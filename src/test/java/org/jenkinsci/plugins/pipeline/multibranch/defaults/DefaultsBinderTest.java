@@ -2,6 +2,7 @@
  * The MIT License
  *
  * Copyright (c) 2016 Saponenko Denis
+ * Copyright (c) 2018 Sam Gleske - https://github.com/samrocketman
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,86 +25,91 @@
 
 package org.jenkinsci.plugins.pipeline.multibranch.defaults;
 
-import jenkins.branch.BranchProperty;
-import jenkins.branch.BranchSource;
-import jenkins.branch.DefaultBranchPropertyStrategy;
-import jenkins.plugins.git.GitSCMSource;
-import jenkins.plugins.git.GitSampleRepoRule;
-import org.jenkinsci.lib.configprovider.ConfigProvider;
+import hudson.Extension;
+import hudson.model.Action;
+import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.Queue;
+import hudson.model.TaskListener;
+import jenkins.model.Jenkins;
 import org.jenkinsci.lib.configprovider.model.Config;
 import org.jenkinsci.plugins.configfiles.ConfigFileStore;
 import org.jenkinsci.plugins.configfiles.GlobalConfigFiles;
-import org.jenkinsci.plugins.configfiles.groovy.GroovyScript;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
+import org.jenkinsci.plugins.workflow.flow.FlowDefinitionDescriptor;
+import org.jenkinsci.plugins.workflow.flow.FlowExecution;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
-import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
-import org.jvnet.hudson.test.JenkinsRule;
 
-import static net.sf.ezmorph.test.ArrayAssertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import java.util.List;
 
-public class DefaultsBinderTest {
-    @ClassRule
-    public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
-    @Rule
-    public GitSampleRepoRule sampleGitRepo = new GitSampleRepoRule();
+/**
+ * Checks out the local default version of {@link WorkflowBranchProjectFactory#SCRIPT} in order if exist:
+ * 1. From module checkout
+ * 1. From task workspace directory
+ * 2. From global jenkins managed files
+ */
+class DefaultsBinder extends FlowDefinition {
 
+    private String scriptId;
+    private boolean useSandbox;
 
-    @Test
-    public void testDefaultJenkinsFile() throws Exception {
-        GlobalConfigFiles globalConfigFiles = r.jenkins.getExtensionList(GlobalConfigFiles.class).get(GlobalConfigFiles.class);
-        ConfigFileStore store = globalConfigFiles.get();
-
-        Config config = new GroovyScript("Jenkinsfile", "Jenkinsfile", "",
-            "semaphore 'wait'; node {checkout scm; echo readFile('file')}");
-        store.save(config);
-
-        sampleGitRepo.init();
-        sampleGitRepo.write("file", "initial content");
-        sampleGitRepo.git("commit", "--all", "--message=flow");
-        WorkflowMultiBranchProject mp = r.jenkins.createProject(PipelineMultiBranchDefaultsProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false),
-            new DefaultBranchPropertyStrategy(new BranchProperty[0])));
-        WorkflowJob p = PipelineMultiBranchDefaultsProjectTest.scheduleAndFindBranchProject(mp, "master");
-        SemaphoreStep.waitForStart("wait/1", null);
-        WorkflowRun b1 = p.getLastBuild();
-        assertNotNull(b1);
-        assertEquals(1, b1.getNumber());
-        SemaphoreStep.success("wait/1", null);
-        r.assertLogContains("initial content", r.waitForCompletion(b1));
+    public DefaultsBinder(String scriptId, boolean useSandbox) {
+        this.scriptId = scriptId;
+        this.useSandbox = useSandbox;
     }
 
-    @Test
-    public void testDefaultJenkinsFileLoadFromWorkspace() throws Exception {
-        GlobalConfigFiles globalConfigFiles = r.jenkins.getExtensionList(GlobalConfigFiles.class).get(GlobalConfigFiles.class);
-        ConfigFileStore store = globalConfigFiles.get();
-        Config config = new GroovyScript("Jenkinsfile", "Jenkinsfile", "",
-            "semaphore 'wait'; node {checkout scm; load 'Jenkinsfile'}");
-        store.save(config);
+    @Override
+    public FlowExecution create(FlowExecutionOwner handle, TaskListener listener, List<? extends Action> actions) throws Exception {
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins == null) {
+            throw new IllegalStateException("inappropriate context");
+        }
+        Queue.Executable exec = handle.getExecutable();
+        if (!(exec instanceof WorkflowRun)) {
+            throw new IllegalStateException("inappropriate context");
+        }
 
-
-        sampleGitRepo.init();
-        sampleGitRepo.write("Jenkinsfile", "echo readFile('file')");
-        sampleGitRepo.git("add", "Jenkinsfile");
-        sampleGitRepo.write("file", "initial content");
-        sampleGitRepo.git("commit", "--all", "--message=flow");
-        WorkflowMultiBranchProject mp = r.jenkins.createProject(PipelineMultiBranchDefaultsProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false),
-            new DefaultBranchPropertyStrategy(new BranchProperty[0])));
-        WorkflowJob p = PipelineMultiBranchDefaultsProjectTest.scheduleAndFindBranchProject(mp, "master");
-        SemaphoreStep.waitForStart("wait/1", null);
-        WorkflowRun b1 = p.getLastBuild();
-        assertNotNull(b1);
-        assertEquals(1, b1.getNumber());
-        SemaphoreStep.success("wait/1", null);
-        r.assertLogContains("initial content", r.waitForCompletion(b1));
+        ConfigFileStore store = GlobalConfigFiles.get();
+        if (store != null) {
+            Config config = store.getById(scriptId);
+            if (config != null) {
+                if (useSandbox) {
+                    listener.getLogger().println("Running with default Jenkinsfile ID: " + scriptId + "; within Groovy sandbox.");
+                } else {
+                    listener.getLogger().println("Running with default Jenkinsfile ID: " + scriptId);
+                }
+                return new CpsFlowDefinition(config.content, useSandbox).create(handle, listener, actions);
+            }
+        }
+        throw new IllegalArgumentException("Default " + PipelineBranchDefaultsProjectFactory.SCRIPT + " not found. Check configuration.");
     }
 
+    @Extension
+    public static class DescriptorImpl extends FlowDefinitionDescriptor {
+
+        @Override
+        public String getDisplayName() {
+            return "Pipeline script from default " + PipelineBranchDefaultsProjectFactory.SCRIPT;
+        }
+
+    }
+
+    /**
+     * Want to display this in the r/o configuration for a branch project, but not offer it on standalone jobs or in any other context.
+     */
+    @Extension
+    public static class HideMeElsewhere extends DescriptorVisibilityFilter {
+
+        @Override
+        public boolean filter(Object context, Descriptor descriptor) {
+            if (descriptor instanceof DescriptorImpl) {
+                return context instanceof WorkflowJob wj && ((WorkflowJob) context).getParent() instanceof PipelineMultiBranchDefaultsProject;
+            }
+            return true;
+        }
+
+    }
 }

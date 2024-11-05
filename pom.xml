@@ -24,17 +24,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.88</version>
-        <relativePath />
+        <version>5.2</version>
+        <relativePath/>
     </parent>
     <properties>
-        <jenkins.version>2.452.4</jenkins.version>
-        <maven.compiler.release>17</maven.compiler.release>
+        <jenkins.baseline>2.479</jenkins.baseline>
+        <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     </properties>
     <artifactId>pipeline-multibranch-defaults</artifactId>
     <version>2.2-SNAPSHOT</version>
@@ -55,7 +56,7 @@ THE SOFTWARE.
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
+        <connection>scm:git:https://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
         <tag>HEAD</tag>
@@ -76,15 +77,15 @@ THE SOFTWARE.
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.452.x</artifactId>
+                <artifactId>bom-${jenkins.baseline}.x</artifactId>
                 <version>3613.v584fca_12cf5c</version>
-                <scope>import</scope>
                 <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>
-    <!-- MINIMUM REQUIRED DEPENDENCIES -->
+        <!-- MINIMUM REQUIRED DEPENDENCIES -->
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-cps</artifactId>
@@ -105,8 +106,8 @@ THE SOFTWARE.
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
         </dependency>
-    <!-- END REQUIRED DEPENDENCIES -->
-    <!-- REQUIRED BY TESTS -->
+        <!-- END REQUIRED DEPENDENCIES -->
+        <!-- REQUIRED BY TESTS -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
@@ -160,8 +161,14 @@ THE SOFTWARE.
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-    <!-- END REQUIRED BY TESTS -->
-    <!-- UNNECESSARILY REQUIRED BY CREATING A NEW JOB TYPE -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.21.0</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- END REQUIRED BY TESTS -->
+        <!-- UNNECESSARILY REQUIRED BY CREATING A NEW JOB TYPE -->
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-multibranch</artifactId>
@@ -174,8 +181,8 @@ THE SOFTWARE.
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>cloudbees-folder</artifactId>
         </dependency>
-    <!-- END UNNECESSARILY REQUIRED DEPENDENCIES -->
-    <!-- UNNECESSARILY REQUIRED TEST DEPS BY CREATING A NEW JOB TYPE -->
+        <!-- END UNNECESSARILY REQUIRED DEPENDENCIES -->
+        <!-- UNNECESSARILY REQUIRED TEST DEPS BY CREATING A NEW JOB TYPE -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>credentials</artifactId>
@@ -191,7 +198,7 @@ THE SOFTWARE.
             <artifactId>workflow-step-api</artifactId>
             <scope>test</scope>
         </dependency>
-    <!-- END UNNECESSARILY REQUIRED BY TESTS -->
+        <!-- END UNNECESSARILY REQUIRED BY TESTS -->
     </dependencies>
     <build>
         <plugins>
@@ -205,12 +212,6 @@ THE SOFTWARE.
                     </loggers>
                     -->
                     <compatibleSinceVersion>2.0</compatibleSinceVersion>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
                 </configuration>
             </plugin>
         </plugins>
