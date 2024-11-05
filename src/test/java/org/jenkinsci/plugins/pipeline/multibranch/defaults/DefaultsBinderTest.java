@@ -45,7 +45,7 @@ import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static net.sf.ezmorph.test.ArrayAssertions.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class DefaultsBinderTest {
     @ClassRule

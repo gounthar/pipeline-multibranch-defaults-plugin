@@ -29,11 +29,12 @@ THE SOFTWARE.
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.76</version>
+        <version>4.88</version>
         <relativePath />
     </parent>
     <properties>
-        <jenkins.version>2.361.4</jenkins.version>
+        <jenkins.version>2.452.4</jenkins.version>
+        <maven.compiler.release>17</maven.compiler.release>
     </properties>
     <artifactId>pipeline-multibranch-defaults</artifactId>
     <version>2.2-SNAPSHOT</version>
@@ -75,8 +76,8 @@ THE SOFTWARE.
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.361.x</artifactId>
-                <version>2102.v854b_fec19c92</version>
+                <artifactId>bom-2.452.x</artifactId>
+                <version>3613.v584fca_12cf5c</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
