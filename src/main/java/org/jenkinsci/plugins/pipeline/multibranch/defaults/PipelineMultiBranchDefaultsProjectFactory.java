@@ -115,8 +115,8 @@ public class PipelineMultiBranchDefaultsProjectFactory extends MultiBranchProjec
 
     @Override
     public void updateExistingProject(MultiBranchProject<?, ?> project, Map<String, Object> attributes, TaskListener listener) throws IOException, InterruptedException {
-        if (project instanceof WorkflowMultiBranchProject) {
-            configureProjectFactoryFor((WorkflowMultiBranchProject) project);
+        if (project instanceof WorkflowMultiBranchProject branchProject) {
+            configureProjectFactoryFor(branchProject);
         }
     }
 
